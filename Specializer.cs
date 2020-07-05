@@ -19,12 +19,12 @@ namespace IS4.TypeSpecializer
         /// <summary>
         /// A general type that that is used to construct a value if no patten is matched.
         /// </summary>
-        public Type Fallback { get; set; }
+        public Type? Fallback { get; set; }
 
         /// <summary>
         /// A list of exceptions that are filtered out when a new object is constructed. By default, only exceptions deriving from <see cref="SystemException"/> are filtered.
         /// </summary>
-        public IReadOnlyList<Type> CreationExceptions { get; set; }
+        public IReadOnlyList<Type>? CreationExceptions { get; set; }
 
         /// <summary>
         /// Creates a new instance of the type.
@@ -49,7 +49,7 @@ namespace IS4.TypeSpecializer
         /// </summary>
         /// <param name="typeArguments">An array of types that are used to select the appropriate pattern.</param>
         /// <returns>An instance of the type that matches the provided type arguments.</returns>
-        public object Specialize(params Type[] typeArguments)
+        public object? Specialize(params Type[] typeArguments)
         {
             return Specialize((IReadOnlyList<Type>)typeArguments);
         }
@@ -59,8 +59,12 @@ namespace IS4.TypeSpecializer
         /// </summary>
         /// <param name="typeArguments">A list of types that are used to select the appropriate pattern.</param>
         /// <returns>An instance of the type that matches the provided type arguments.</returns>
-        public object Specialize(IReadOnlyList<Type> typeArguments)
+        public object? Specialize(IReadOnlyList<Type> typeArguments)
         {
+            if(Fallback == null)
+            {
+                return SpecializeAll(typeArguments).FirstOrDefault();
+            }
             return SpecializeAll(typeArguments).Concat(SpecializeTypeAll(Fallback, typeArguments, Patterns.Count, 0, Patterns.Count)).FirstOrDefault();
         }
 
@@ -134,7 +138,7 @@ namespace IS4.TypeSpecializer
                     bool set = true;
                     for(int j = 0; j < typeParams.Length; j++)
                     {
-                        if(!typeArgs.TryGetValue(typeParams[j].Name, out args[j]))
+                        if(!typeArgs.TryGetValue(typeParams[j].Name, out args[j]!))
                         {
                             set = false;
                             break;
@@ -178,7 +182,7 @@ namespace IS4.TypeSpecializer
                     bool any = false;
                     foreach(var args in GetAllParamCombinations(method, i, globalStart, globalStop, typeArguments, typeArgs))
                     {
-                        object obj;
+                        object? obj;
                         try{
                             obj = method.Invoke(null, args);
                         }catch(Exception exc) when(CreationExceptions != null && CreationExceptions.Any(t => t.IsAssignableFrom(exc.GetType())))
@@ -189,12 +193,17 @@ namespace IS4.TypeSpecializer
                         {
                             foreach(var val in collection)
                             {
-                                yield return val;
+                                if(val != null)
+                                {
+                                    yield return val;
+                                    any = true;
+                                }
                             }
-                        }else{
+                        }else if(obj != null)
+                        {
                             yield return obj;
+                            any = true;
                         }
-                        any = true;
                     }
                     if(any && method.GetCustomAttribute<DefinitiveAttribute>() != null)
                     {
@@ -244,7 +253,7 @@ namespace IS4.TypeSpecializer
             if(adapter != null)
             {
                 var type = param.ParameterType;
-                if(type.IsByRef) type = type.GetElementType();
+                if(type.IsByRef) type = type.GetElementType()!;
 
                 var newTypes = new List<Type>();
                 ExtractTypes(newTypes, adapter.NewTypes, typeArgs);
@@ -305,9 +314,6 @@ namespace IS4.TypeSpecializer
             {
                 switch(constraint)
                 {
-                    case NullConstraint _:
-                        newTypes.Add(null);
-                        break;
                     case ParameterConstraint paramConstraint:
                         if(!typeArgs.TryGetValue(paramConstraint.Name, out var paramType))
                         {
@@ -331,14 +337,14 @@ namespace IS4.TypeSpecializer
             }
         }
 
-        private static Type MakeGenericType(Type definition, IReadOnlyList<Type> arguments)
+        private static Type MakeGenericType(Type? definition, IReadOnlyList<Type> arguments)
         {
             if(definition == null)
             {
                 return arguments[0];
             }else if(definition.Equals(typeof(ArrayMarker<,>)) && typeof(IEncodedInt32).IsAssignableFrom(arguments[0]))
             {
-                int rank = ((IEncodedInt32)Activator.CreateInstance(arguments[0])).Value;
+                int rank = ((IEncodedInt32)Activator.CreateInstance(arguments[0])!).Value;
                 return arguments[1].MakeArrayType(rank);
             }else if(definition.Equals(typeof(PointerMarker<>)))
             {
@@ -363,13 +369,13 @@ namespace IS4.TypeSpecializer
                         {
                             rankType = typeof(EncodedInt32<>).MakeGenericType(rankType);
                         }
-                        arg = typeof(ArrayMarker<,>).MakeGenericType(rankType, arg.GetElementType());
+                        arg = typeof(ArrayMarker<,>).MakeGenericType(rankType, arg.GetElementType()!);
                     }else if(arg.IsByRef)
                     {
-                        arg = typeof(ByRefMarker<>).MakeGenericType(arg.GetElementType());
+                        arg = typeof(ByRefMarker<>).MakeGenericType(arg.GetElementType()!);
                     }else if(arg.IsPointer)
                     {
-                        arg = typeof(PointerMarker<>).MakeGenericType(arg.GetElementType());
+                        arg = typeof(PointerMarker<>).MakeGenericType(arg.GetElementType()!);
                     }
                 }
                 return definition.MakeGenericType(args);
@@ -514,7 +520,7 @@ namespace IS4.TypeSpecializer
             }
             foreach(var typeInstantiation in instantiations)
             {
-                var instantiationArgs = typeInstantiation?.GetGenericArguments();
+                var instantiationArgs = typeInstantiation.GetGenericArguments();
                 foreach(var _ in UnifyInstantiation(instantiationArgs, typeConstraint.Arguments, constraintArgs, 0, variance, typeArgs))
                 {
                     Type result;
@@ -608,7 +614,7 @@ namespace IS4.TypeSpecializer
             }
         }
 
-        private static IEnumerable<Type> GetInstantiations(Type typeArgument, Type typeConstraint)
+        private static IEnumerable<Type> GetInstantiations(Type typeArgument, Type? typeConstraint)
         {
             foreach(var baseClass in GetAllTypes(typeArgument))
             {
@@ -629,13 +635,13 @@ namespace IS4.TypeSpecializer
                     {
                         rankType = typeof(EncodedInt32<>).MakeGenericType(rankType);
                     }
-                    yield return typeof(ArrayMarker<,>).MakeGenericType(rankType, baseClass.GetElementType());
+                    yield return typeof(ArrayMarker<,>).MakeGenericType(rankType, baseClass.GetElementType()!);
                 }else if(baseClass.IsPointer && typeConstraint.Equals(typeof(PointerMarker<>)))
                 {
-                    yield return typeof(PointerMarker<>).MakeGenericType(baseClass.GetElementType());
+                    yield return typeof(PointerMarker<>).MakeGenericType(baseClass.GetElementType()!);
                 }else if(baseClass.IsByRef && typeConstraint.Equals(typeof(ByRefMarker<>)))
                 {
-                    yield return typeof(ByRefMarker<>).MakeGenericType(baseClass.GetElementType());
+                    yield return typeof(ByRefMarker<>).MakeGenericType(baseClass.GetElementType()!);
                 }else if(baseClass.IsValueType && typeConstraint.Equals(typeof(ValueTypeMarker)))
                 {
                     yield return baseClass;
@@ -646,7 +652,7 @@ namespace IS4.TypeSpecializer
             }
         }
 
-        private static IEnumerable<Type> GetInverseInstantiations(Type typeArgument, Type typeConstraint)
+        private static IEnumerable<Type> GetInverseInstantiations(Type typeArgument, Type? typeConstraint)
         {
             if(typeConstraint == null)
             {
@@ -669,13 +675,13 @@ namespace IS4.TypeSpecializer
                     {
                         rankType = typeof(EncodedInt32<>).MakeGenericType(rankType);
                     }
-                    yield return typeof(ArrayMarker<,>).MakeGenericType(rankType, typeArgument.GetElementType());
+                    yield return typeof(ArrayMarker<,>).MakeGenericType(rankType, typeArgument.GetElementType()!);
                 }else if(superClass.Equals(typeof(PointerMarker<>)) && typeArgument.IsPointer)
                 {
-                    yield return typeof(PointerMarker<>).MakeGenericType(typeArgument.GetElementType());
+                    yield return typeof(PointerMarker<>).MakeGenericType(typeArgument.GetElementType()!);
                 }else if(superClass.Equals(typeof(ByRefMarker<>)) && typeArgument.IsByRef)
                 {
-                    yield return typeof(ByRefMarker<>).MakeGenericType(typeArgument.GetElementType());
+                    yield return typeof(ByRefMarker<>).MakeGenericType(typeArgument.GetElementType()!);
                 }else if(superClass.Equals(typeof(ValueTypeMarker)) && typeArgument.IsValueType)
                 {
                     yield return typeArgument;
@@ -686,7 +692,7 @@ namespace IS4.TypeSpecializer
             }
         }
 
-        private static IEnumerable<Type> GetAllTypes(Type type)
+        private static IEnumerable<Type> GetAllTypes(Type? type)
         {
             if(type == null) yield break;
             yield return type;
@@ -751,13 +757,13 @@ namespace IS4.TypeSpecializer
                             {
                                 rankType = typeof(EncodedInt32<>).MakeGenericType(rankType);
                             }
-                            list.Add(new ConcreteTypeConstraint(variance.GetValueOrDefault(), typeof(ArrayMarker<,>), new ConcreteTypeConstraint(ConstraintVariance.Invariant, rankType), new ConcreteTypeConstraint(ConstraintVariance.Invariant, type.GetElementType())));
+                            list.Add(new ConcreteTypeConstraint(variance.GetValueOrDefault(), typeof(ArrayMarker<,>), new ConcreteTypeConstraint(ConstraintVariance.Invariant, rankType), new ConcreteTypeConstraint(ConstraintVariance.Invariant, type.GetElementType()!)));
                         }else if(type.IsByRef)
                         {
-                            list.Add(new ConcreteTypeConstraint(variance.GetValueOrDefault(), typeof(ByRefMarker<>), new ConcreteTypeConstraint(ConstraintVariance.Invariant, type.GetElementType())));
+                            list.Add(new ConcreteTypeConstraint(variance.GetValueOrDefault(), typeof(ByRefMarker<>), new ConcreteTypeConstraint(ConstraintVariance.Invariant, type.GetElementType()!)));
                         }else if(type.IsPointer)
                         {
-                            list.Add(new ConcreteTypeConstraint(variance.GetValueOrDefault(), typeof(PointerMarker<>), new ConcreteTypeConstraint(ConstraintVariance.Invariant, type.GetElementType())));
+                            list.Add(new ConcreteTypeConstraint(variance.GetValueOrDefault(), typeof(PointerMarker<>), new ConcreteTypeConstraint(ConstraintVariance.Invariant, type.GetElementType()!)));
                         }else{
                             list.Add(new ConcreteTypeConstraint(variance.GetValueOrDefault(), type));
                         }

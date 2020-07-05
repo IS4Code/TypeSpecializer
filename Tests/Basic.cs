@@ -1,8 +1,6 @@
 ﻿using IS4.TypeSpecializer;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace Tests
@@ -22,7 +20,7 @@ namespace Tests
         {
             var specializer = new Specializer(typeof(MatchType1<>), typeof(MatchType2<>));
             specializer.Fallback = typeof(object);
-            Assert.AreEqual(specializer.Specialize(typeof(int?)).GetType(), typeof(object));
+            Assert.AreEqual(specializer.Specialize(typeof(int?))?.GetType(), typeof(object));
         }
 
         [TestMethod]

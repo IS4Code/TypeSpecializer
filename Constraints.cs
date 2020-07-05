@@ -90,16 +90,16 @@ namespace IS4.TypeSpecializer
                     intType = typeof(EncodedInt32<>).MakeGenericType(intType);
                 }
                 arr[0] = new ConcreteTypeConstraint(ConstraintVariance.Invariant, intType);
-                arr[1] = new ConcreteTypeConstraint(ConstraintVariance.Invariant, type.GetElementType());
+                arr[1] = new ConcreteTypeConstraint(ConstraintVariance.Invariant, type.GetElementType()!);
                 args = arr;
                 return typeof(ArrayMarker<,>);
             }else if(type.IsByRef)
             {
-                args = new[] { new ConcreteTypeConstraint(ConstraintVariance.Invariant, type.GetElementType()) };
+                args = new[] { new ConcreteTypeConstraint(ConstraintVariance.Invariant, type.GetElementType()!) };
                 return typeof(ByRefMarker<>);
             }else if(type.IsPointer)
             {
-                args = new[] { new ConcreteTypeConstraint(ConstraintVariance.Invariant, type.GetElementType()) };
+                args = new[] { new ConcreteTypeConstraint(ConstraintVariance.Invariant, type.GetElementType()!) };
                 return typeof(PointerMarker<>);
             }
             args = Array.Empty<Constraint>();
