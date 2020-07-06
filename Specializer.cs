@@ -664,7 +664,7 @@ namespace IS4.TypeSpecializer
                 if(superClass.Equals(typeArgument))
                 {
                     yield return typeArgument;
-                }else if(superClass.IsGenericTypeDefinition && superClass.Equals(typeArgument.GetGenericTypeDefinition()))
+                }else if(typeArgument.IsGenericType && superClass.Equals(typeArgument.GetGenericTypeDefinition()))
                 {
                     yield return typeArgument;
                 }else if(superClass.Equals(typeof(ArrayMarker<,>)) && typeArgument.IsArray)
