@@ -15,6 +15,9 @@
     <PackageProjectUrl>https://github.com/IllidanS4/TypeSpecializer</PackageProjectUrl>
     <RepositoryUrl>https://github.com/IllidanS4/TypeSpecializer.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <PackageId>IS4.TypeSpecializer</PackageId>
+    <Description>Partial pattern-based run-time generic specialization for .NET</Description>
+    <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
 
   <ItemGroup>
