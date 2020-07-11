@@ -5,6 +5,16 @@
     <LangVersion>8.0</LangVersion>
     <RootNamespace>IS4.TypeSpecializer</RootNamespace>
     <Nullable>enable</Nullable>
+    <Version>0.1.0</Version>
+    <Authors>IS4</Authors>
+    <Company />
+    <Product>TypeSpecializer</Product>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageProjectUrl>https://github.com/IllidanS4/TypeSpecializer</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/IllidanS4/TypeSpecializer.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +26,7 @@
   <ItemGroup>
     <None Remove=".gitignore" />
     <None Remove="README.md" />
+    <None Include="LICENSE" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>
